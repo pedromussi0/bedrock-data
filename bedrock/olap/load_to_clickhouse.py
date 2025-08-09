@@ -2,9 +2,9 @@ import os
 import clickhouse_connect
 from deltalake import DeltaTable
 
-# --- Configuration ---
-# These will be set as environment variables on the VM
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+AZURE_STORAGE_ACCOUNT_NAME = os.environ.get("AZURE_STORAGE_ACCOUNT_NAME")
+AZURE_STORAGE_ACCOUNT_KEY = os.environ.get("AZURE_STORAGE_ACCOUNT_KEY")
+
 CLICKHOUSE_HOST = os.environ.get("CLICKHOUSE_HOST", "localhost")
 CLICKHOUSE_USER = os.environ.get("CLICKHOUSE_USER", "default")
 CLICKHOUSE_PASSWORD = os.environ.get("CLICKHOUSE_PASSWORD", "")
@@ -39,10 +39,20 @@ def main():
     """Main ETL function to move data from Delta Lake to ClickHouse."""
     print("Starting data load from Delta Lake to ClickHouse...")
 
+    # --- UPDATED AUTHENTICATION LOGIC ---
     # 1. Read data from Delta Lake in Azure Blob Storage
-    # The `deltalake` library can read directly from Azure using the connection string.
+    # We now pass the account name and key directly, which is more reliable.
     print(f"Reading from Delta table at: {REFINED_DELTA_PATH}")
-    storage_options = {"connection_string": AZURE_STORAGE_CONNECTION_STRING}
+    
+    if not AZURE_STORAGE_ACCOUNT_NAME or not AZURE_STORAGE_ACCOUNT_KEY:
+        print("[ERROR] Please set AZURE_STORAGE_ACCOUNT_NAME and AZURE_STORAGE_ACCOUNT_KEY environment variables.")
+        exit(1)
+        
+    storage_options = {
+        "account_name": AZURE_STORAGE_ACCOUNT_NAME,
+        "access_key": AZURE_STORAGE_ACCOUNT_KEY
+    }
+    
     dt = DeltaTable(REFINED_DELTA_PATH, storage_options=storage_options)
     
     # Load the entire table into a Pandas DataFrame
@@ -60,7 +70,6 @@ def main():
         create_clickhouse_table(client)
 
         print(f"Inserting {len(df)} rows into {CLICKHOUSE_TABLE}...")
-       
         client.insert(f"{CLICKHOUSE_DATABASE}.{CLICKHOUSE_TABLE}", df, column_names='auto')
         print("Data insertion successful.")
 
