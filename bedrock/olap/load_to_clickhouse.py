@@ -70,7 +70,7 @@ def main():
         create_clickhouse_table(client)
 
         print(f"Inserting {len(df)} rows into {CLICKHOUSE_TABLE}...")
-        client.insert(f"{CLICKHOUSE_DATABASE}.{CLICKHOUSE_TABLE}", df, column_names='auto')
+        client.insert(f"{CLICKHOUSE_DATABASE}.{CLICKHOUSE_TABLE}", df, column_names=list(df.columns))
         print("Data insertion successful.")
 
     except Exception as e:

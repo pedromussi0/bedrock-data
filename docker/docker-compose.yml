@@ -5,9 +5,13 @@ services:
     ports:
       - "8123:8123" # HTTP interface for clients and our API
       - "9000:9000" # Native TCP interface
+    environment:
+      # from the .env file in this directory.
+      - CLICKHOUSE_DEFAULT_USER_PASSWORD=${CLICKHOUSE_PASSWORD}
     volumes:
       # persists the ClickHouse data on the host VM's filesystem.
       - ./clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse_user_config.xml:/etc/clickhouse-server/users.d/z_custom_user_config.xml
     ulimits:
       nproc: 65535
       nofile:
